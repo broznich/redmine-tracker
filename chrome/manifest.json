@@ -1,0 +1,27 @@
+{
+    "manifest_version"  : 2,
+    "name"              : "TimeTracker",
+    "description"       : "Keepitok redmine time tracker with many extended features",
+    "version"           : "1.0.0",
+    "icons"             : {
+        "64"   : "ext_icons/64_pause.png"
+    },
+    "background"        : {
+        "page": "background.html"
+    },
+    "browser_action"    : {
+        "default_icon" : {
+            "64"   : "ext_icons/64_pause.png"
+        },
+        "default_title" : "TimeTracker RM",
+        "default_popup" : "popup.html"
+    },
+    "permissions"   : [
+        "storage",
+        "http://*/*",
+        "https://*/*",
+        "tabs"
+    ],
+    "minimum_chrome_version"    : "38.0.0.0",
+    "options_page"              : "options.html"
+}

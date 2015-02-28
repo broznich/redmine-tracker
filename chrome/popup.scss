@@ -1,0 +1,121 @@
+@font-face {
+    font-family: Cantarell;
+    src: url(fonts/Cantarell-Regular.ttf);
+}
+
+@font-face {
+    font-family: Cantarell-bold;
+    src: url(fonts/Cantarell-Bold.ttf);
+}
+
+
+#main {
+    width: 300px;
+    clear: both;
+    overflow: hidden;
+    color: #333333;
+    
+    div,p,a {
+        font-family: Cantarell;
+    }
+    
+    .time-data {
+        width: 260px;
+        display: inline-block;
+        vertical-align: top;
+        padding: 6px 0 6px 6px;
+        float: left;
+        
+        .time-main {
+            position: relative;
+            
+            div,p {
+                display: inline-block;
+                vertical-align: top;
+            }
+            .time-timer {
+                font-weight: bold;
+                //text-shadow: 1px 1px 4px rgb(240, 205, 27);
+            }
+            .time-task {
+                white-space: nowrap;
+                word-wrap: normal;
+                width: 52px;
+                text-overflow: ellipsis;
+                overflow: hidden;
+                padding-left: 6px;
+            }
+            .time-total {
+                font-weight: bold;
+                display: block;
+                position: absolute;
+                top: 0px;
+                right: 0px;
+            }
+        }
+        
+        .time-current {
+            padding: 6px 0;
+            margin: 4px 0;
+            border-top: 1px solid gray;
+            border-bottom: 1px solid gray;
+        }
+        
+        .time-history {
+            p {
+                padding: 2px 0;
+                position: relative;
+                
+                .time-p-task {
+                    cursor: pointer;
+                }
+                
+                .time-p-time {
+                    font-weight: bold;
+                    display: block;
+                    position: absolute;
+                    right: 0px;
+                    top: 0px;
+                }
+            }
+        }
+    }
+    
+    .time-buttons {
+        width: 24px;
+        display: inline-block;
+        vertical-align: top;
+        padding-top: 6px;
+        float: right;
+    }
+    
+    .button {
+        display: inline-block;
+        vertical-align: top;
+        width: 24px;
+        height: 24px;
+        background-position: 0 0;
+        background-repeat: no-repeat;
+        background-color: transparent;
+        background-size: 24px;
+        
+        &.tea-button {
+            background-image: url("icons/64_coffee.png");
+        }
+        &.settings-button {
+            background-image: url("icons/64_settings.png");
+        }
+        &.calendar-button {
+            background-image: url("icons/64_calendar.png");
+        }
+        &.start-button {
+            background-image: url("icons/64_play.png");
+        }
+        &.pause-button {
+            background-image: url("icons/64_pause.png");
+        }
+        &.stop-button {
+            background-image: url("icons/64_stop.png");
+        }
+    }
+}
