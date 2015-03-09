@@ -2,12 +2,14 @@
 var RServer = function (config) {
     var self = this;
     
-    this.key = config.key;
-    this.url = config.url;
+    this.key = config.apiKey;
+    this.url = config.apiHost;
 
-    this.getUserData(function (data) {
-        self.user = data.user;
-        self.ready = true;
+    this.getUserData(function (error, data) {
+        if (!error) {
+            self.user = data.user;
+            self.ready = true;
+        }
     });
 };
 
@@ -57,14 +59,27 @@ RServer.prototype = {
         
         var params = {
             "user_id"   : this.getCurrentUserId(),
-            //"from"      : year + '-' + month + '-' + day
-            "from"        : "2015-02-27"
+            "from"      : year + '-' + month + '-' + day
+            //"from"        : "2015-02-27"
         };
         
         this.request("GET", "time_entries.json", params, callback);
     },
     
+    setTimeEntry: function (data, callback) {
+        var params = {
+            "issue_id"  : data.task,
+            "hours"     : data.hours
+        };
+        
+        this.request("POST", "time_entries.json", { "time_entry" : params } , callback);
+    },
+    
     request: function (method, url, params, callback) {
+        var formData    = null,
+            status      = 200,
+            req         = new XMLHttpRequest();
+        
         url = this.url + url;
         
         if (method === "GET") {
@@ -75,26 +90,36 @@ RServer.prototype = {
                 }
             }
             url = url.substr(0,url.length-1); //if 0 will remove ?,else remove last &
+        } else if (method === "POST") {
+            status = 201;
+            formData = JSON.stringify(params);
         }
         
-        var req = new XMLHttpRequest();
         req.open(method, url, true);
         req.setRequestHeader("X-Redmine-API-Key", this.key);
         
+        if (method !== "GET") {
+            req.setRequestHeader("Content-Type", "application/json");
+        }
+        
         req.onreadystatechange = function () {
-            if (this.readyState === 4 && this.status === 200) {
-                var data = this.responseText;
-                
-                try {
-                    data = JSON.parse(data);
-                } catch (e) {
-                    data = {};
+            if (this.readyState === 4) {
+                if (this.status === status) {
+                    var data = this.responseText;
+
+                    try {
+                        data = JSON.parse(data);
+                    } catch (e) {
+                        data = {};
+                    }
+
+                    callback(null, data);
+                } else {
+                    callback(Error(this.statusText));
                 }
-                
-                callback(data);
             }
         };
         
-        req.send(null);
+        req.send(formData);
     }
 };

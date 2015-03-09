@@ -1,27 +1,43 @@
-/* global window, document, console, chrome, LStorage */
+/* global window, document, console, chrome, LStorage, TrackerUtils */
 document.addEventListener("DOMContentLoaded", function(event) {
-    var timer = new Timer();
-    
-    timer.setCurrentTask(timer.ls.getTaskValue());
-    
-    timer.initTimerElement();
-    timer.updateTimeHistory();
-    
-    timer.restoreState();
-    
-    timer.detectCurrentTask();
+    var timer       = new Timer();
 });
 
 var Timer = function () {
+    var self = this;
+    
+    this.utils = new TrackerUtils();
+
+    this.initData();
     this.initElements();
-    this.hideAllButtons();
-    this.ls = new LStorage();
+    this.attachEvents();
+    
+    this.preloadData(function (data) {
+        self.updateTimeHistoryView(data.history);
+        self.updateCurrentTaskView(data.task);
+        self.updateCurrentStatusView(data.status);
+        
+        self.data.status = data.status;
+        self.data.task = data.task;
+        
+        self.detectCurrentTask(function (task) {
+            self.data.pageTask = task;
+            self.task.setValue(task ? '#' + task : "No task");
+            self.render();
+        });
+    });
+    
+    /*setTimeout(function () {
+        self.clickStopButton();
+    }, 2000);*/
 };
 
 Timer.prototype = {
+    initData: function () {
+        this.data = {};  
+    },
+    
     initElements: function () {
-        var self = this;
-        /* init dom elements */
         this.start = this.createBtnElement("start-button");
         this.stop = this.createBtnElement("stop-button");
         this.pause = this.createBtnElement("pause-button");
@@ -30,22 +46,20 @@ Timer.prototype = {
         this.task = this.createTextElement(".time-current");
         this.total = this.createTextElement(".time-main .time-total");
         
-        this.createTimeHistory();
-        
+        this.history = document.querySelector("#main .time-container .time-data .time-history");
+    },
+    
+    attachEvents: function () {
+        var self = this;
         /* attach event listeners */
-        this.start.getEl().addEventListener("click", function () { self.clickStartButton(); });
-        this.stop.getEl().addEventListener("click", function () { self.clickStopButton(); });
-        this.pause.getEl().addEventListener("click", function () { self.clickPauseButton(); });
+        this.start.getEl().addEventListener("click", function (e) { e.preventDefault(); self.clickStartButton(); });
+        this.stop.getEl().addEventListener("click", function (e) { e.preventDefault(); self.clickStopButton(); });
+        this.pause.getEl().addEventListener("click", function (e) { e.preventDefault(); self.clickPauseButton(); });
         this.history.addEventListener("click", function (e, data) {
             if (e.target.className === "time-p-task") {
                 self.setTaskFromHistory(e.target.textContent);
             }
-        });
-    },
-    
-    initTimerElement: function () {
-        this.timer = this.createTimerElement();
-        this.updateTimeData();
+        });  
     },
     
     createBtnElement: function (name) {
@@ -112,200 +126,165 @@ Timer.prototype = {
         };
     },
     
-    createTimeHistory: function () {
-        var container = document.querySelector("#main .time-container .time-data .time-history"),
-            self = this;
-    
-        this.history = container;
-        /*for (var i = 0,iL = elems.length; i < iL;i++) {
-            history.push(this.createTextElement(elems[i]));
-        }*/
-    },
-    
-    updateTimeHistory: function () {
-        var self = this;
-        chrome.runtime.sendMessage({"action": "history"}, function (response) {
-            self.history.innerHTML = '';
-            console.log("history");
-            var elems = response.history, el, time, task;
-
-            if (elems && elems.length > 0) {
-                for (var i = 0,iL = elems.length; i < iL;i++) {
-                    el = document.createElement("p");
-                    task = document.createElement("span");
-                    time = document.createElement("span");
-                    
-                    task.classList.add("time-p-task");
-                    time.classList.add("time-p-time");
-                    
-                    time.textContent = self.formatTime(elems[i].time, true);
-                    task.textContent = '#' + elems[i].task;
-                    
-                    el.appendChild(task);
-                    el.appendChild(time);
-
-                    self.history.appendChild(el);
-                }
-            } else {
-                el = document.createElement("p");
-                el.textContent = "No history";
-                self.history.appendChild(el);
-            }
-        });  
-    },
-    
-    updateTimeData: function () {
-        var self = this;
-        chrome.runtime.sendMessage({"action": "timer", "task": this.getCurrentTask()}, function (response) {
-            var cTime = response.time > 0 ? self.formatTime(response.time) : "",
-                aTime = response.alltime > 0 ? self.formatTime(response.alltime, true) : "";
-
-            self.timer.setValue((aTime && response.time !== response.alltime) ? cTime + ' / ' + aTime : cTime);
-
-            self.total.setValue(self.formatTime(response.total, true));
-
-            if (response.total > 28800000) {
-                self.total.setColor("green");
-            } else if (response.total > 18000000) {
-                self.total.setColor("blue");
-            } else {
-                self.total.setColor("red");
-            }
-        });
-    },
-    
-    createTimerElement: function() {
-        var elem = document.querySelector("#main .time-container .time-data .time-main .time-timer");
-        var self = this;
-        
-        return {
-            setValue: function (value) {
-                elem.textContent = value || "";
-            },
-            
-            getValue: function () {
-                return elem.textContent;
-            }
-        };
-    },
-    
-    formatTime: function (ts, nosecond) {
-        var timeInSec = Math.round(ts/1000);
-        
-        var hours = Math.floor(timeInSec/3600);
-        var othersSec = timeInSec % 3600;
-        var mins = Math.floor(othersSec/60);
-        var secs = othersSec % 60;
-            
-        var time = hours + ':' + (mins >= 10 ? mins : '0' + mins);
-        
-        if (!nosecond) {
-            time += ':' + (secs >= 10 ? secs : '0' + secs);
-        }
-        
-        return time;
-    },
-    
-    detectCurrentTask: function () {
-        var self = this;
-        chrome.tabs.getSelected(null, function (tab) {
-            var url = tab.url.match(/^https?\:\/\/rm\.innomdc\.com\/issues\/([\d]+)/);
-            
-            if (url && url.length === 2) {
-                self.setTask(url[1]);
-            } else {
-                self.setTask("No task");
-            }
-        });
-    },
-    
-    setTaskFromHistory: function (task) {
-        this.setTask(task.replace(/[^\d]/g,''));
-    },
-        
-    setTask: function (task) {
-        this.task.setValue(task ? '#' + task : '');
-    },
-    
-    getTask: function () {
-        var val = this.task.getValue();
-        return val.replace(/[^\d]/g,'');
-    },
-    
-    getCurrentTask: function () {
-        var val = this.currentTask.getValue();
-        return val.replace(/[^\d]/g,'');
-    },
-    
-    setCurrentTask: function (task) {
-        if (task) {
-            task = task.replace(/#/g,'');
-            this.currentTask.setValue(task ? '#'+task : '');
-            this.ls.setTaskValue(task);
-        } else {
-            this.ls.setTaskValue(null);
-            this.currentTask.setValue();
-        }
-    },
-    
     hideAllButtons: function () {
         this.start.hide();
         this.stop.hide();
         this.pause.hide();
     },
     
-    setStatus: function (status, noEvent) {
-        this.ls.setStatusValue(status);
+    clickStartButton: function () {
+        var task = this.getTaskId() || this.getPageTask();
         
-        if (noEvent) {
-            return true;
+        if (task) {
+            this.setStatus("works", task);
         }
+    },
+    
+    clickPauseButton: function () {
+        var task = this.getTaskId();
         
-        chrome.runtime.sendMessage({"action": "status", "status" : status, "task" : this.getCurrentTask()}, function (response) {
-            console.log("sended");
+        if (task) {
+            this.setStatus("paused", task);
+        }
+    },
+    
+    clickStopButton: function () {
+        this.setStatus("idle");
+    },
+    
+    detectCurrentTask: function (callback) {
+        var self = this;
+        chrome.tabs.getSelected(null, function (tab) {
+            var url = tab.url.match(/^https?\:\/\/rm\.innomdc\.com\/issues\/([\d]+)/);
+            
+            if (url && url.length === 2) {
+                callback(url[1]);
+            } else {
+                callback(null);
+            }
         });
     },
     
-    restoreState: function () {
-        var state = this.ls.getStatusValue() || "idle";
+    getPageTask: function () {
+        return this.data.pageTask;   
+    },
+    
+    getTask: function () {
+        return this.data.task;
+    },
+    
+    getTaskId: function () {
+        var task = this.data.task;        
+        return (task && task.id) || null;
+    },
+    
+    getCurrentStatus: function () {
+        return this.data.status || "idle";
+    },
+    
+    setStatus: function (status, task) {
+        var self = this;
+        this.requestStatus(status, task, function (response) {
+            if (response.error) {
+                throw Error(response.message);
+            } else {
+                task = response.task;
+                status = response.status;
+                
+                self.data.status = status;
+                self.data.task = task;
+                self.updateCurrentTaskView({ id: task.id });
+                self.updateCurrentStatusView(status);
+            }
+        });
+    },
+    
+    changeButtons: function (status) {
+        this.hideAllButtons();
+        switch (status) {
+            case "works" : 
+                this.stop.show();
+                this.pause.show();
+                break;
+            case "paused" :
+                this.start.show();
+                this.stop.show();
+                break;
+            case "idle" :
+            default:
+                this.start.show();
+                break;
+        }
+    },
+
+    preloadData: function (callback) {
+        var self = this;
+        this.requestAllData(function (data) {
+            if (data.error) {
+            throw Error(data.message);
+            } else {
+                self.data = data;
+                callback(data);
+            } 
+        });
+    },
+    
+    updateCurrentTaskView: function (task) {
+        this.currentTask.setValue((task && task.id) ? '#' + task.id : "");
+    },
+    
+    updateCurrentStatusView: function (status) {
+        this.changeButtons(status);  
+    },
+    
+    updateTimeHistoryView: function (elems) {
+        console.log("history");
+        var el, time, task;
         
-        switch (state) {
-            case "working" : this.clickStartButton(true); break;
-            case "paused" : this.clickPauseButton(true); break;
-            case "idle" : this.clickStopButton(true); break;
+        this.history.innerHTML = '';
+        if (elems && elems.length > 0) {
+            for (var i = 0,iL = elems.length; i < iL;i++) {
+                el = document.createElement("p");
+                task = document.createElement("span");
+                time = document.createElement("span");
+
+                task.classList.add("time-p-task");
+                time.classList.add("time-p-time");
+
+                time.textContent = elems[i].hours.toFixed(2);
+                task.textContent = '#' + elems[i].task;
+
+                el.appendChild(task);
+                el.appendChild(time);
+
+                this.history.appendChild(el);
+            }
+        } else {
+            el = document.createElement("p");
+            el.textContent = "No history";
+            this.history.appendChild(el);
         }
     },
     
-    clickStartButton: function (noEvent) {
-        var task = this.getCurrentTask() || this.getTask();
-        
-        if (!task) {
-            window.alert("No task to start!");
-            return false;
-        }
-        
-        this.start.hide();
-        this.stop.show();
-        this.pause.show();
-        this.setCurrentTask(task);
-        this.setStatus("working", noEvent);
+    render: function () {
+        //this.changeButtons("idle");   //temp
+        this.rendered = true;
     },
     
-    clickPauseButton: function (noEvent) {
-        this.pause.hide();
-        this.start.show();
-        this.stop.show();
-        this.setStatus("paused", noEvent);
+    requestAllData: function (callback) {
+        this.request('all-data', null, callback);   
     },
     
-    clickStopButton: function (noEvent) {
-        this.pause.hide();
-        this.stop.hide();
-        this.start.show();
-        this.setStatus("idle", noEvent);
-        this.setCurrentTask();
-        this.timer.setValue("");
-        //this.createTimeHistory();
-        this.updateTimeHistory();
+    requestStatus: function (status, data, callback) {
+        this.request("status", {
+            status  : status,
+            task    : data
+        }, callback);
+    },
+    
+    request: function (action, data, callback) {
+        chrome.runtime.sendMessage({ "action": action, "data": data }, function (response) {
+            callback(response || {});
+        });
     }
 };

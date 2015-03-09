@@ -1,19 +1,19 @@
 {
     "manifest_version"  : 2,
     "name"              : "TimeTracker",
-    "description"       : "Keepitok redmine time tracker with many extended features",
+    "description"       : "Redmine assistant with time tracker, event notifier, team worker, and others features",
     "version"           : "1.0.0",
     "icons"             : {
-        "64"   : "ext_icons/64_pause.png"
+        "64"   : "ext_icons/64_idle.png"
     },
     "background"        : {
         "page": "background.html"
     },
     "browser_action"    : {
         "default_icon" : {
-            "64"   : "ext_icons/64_pause.png"
+            "64"   : "ext_icons/64_idle.png"
         },
-        "default_title" : "TimeTracker RM",
+        "default_title" : "Redmine Assistant",
         "default_popup" : "popup.html"
     },
     "permissions"   : [
