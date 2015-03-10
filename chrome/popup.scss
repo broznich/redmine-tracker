@@ -8,12 +8,13 @@
     src: url(fonts/Cantarell-Bold.ttf);
 }
 
+$baseColor: #333333;
 
 #main {
     width: 300px;
     clear: both;
     overflow: hidden;
-    color: #333333;
+    color: $baseColor;
     
     div,p,a {
         font-family: Cantarell;
@@ -51,6 +52,16 @@
                 position: absolute;
                 top: 0px;
                 right: 0px;
+                
+                &:hover::after {
+                    content: "total";
+                    color: $baseColor;
+                    display: block;
+                    font-size: 9px;
+                    text-align: center;
+                    border-top: 1px dashed black;
+                    line-height: 8px; 
+                }
             }
         }
         
@@ -68,6 +79,10 @@
                 
                 .time-p-task {
                     cursor: pointer;
+                    
+                    &:hover {
+                        border-bottom: 1px solid $baseColor;   
+                    }
                 }
                 
                 .time-p-time {

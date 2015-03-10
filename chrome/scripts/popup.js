@@ -1,10 +1,12 @@
-/* global window, document, console, chrome, LStorage, TrackerUtils */
+/* global window, document, console, chrome, LStorage, TrackerUtils, credentials */
 document.addEventListener("DOMContentLoaded", function(event) {
     var timer       = new Timer();
 });
 
 var Timer = function () {
     var self = this;
+    
+    this.config = credentials;
     
     this.utils = new TrackerUtils();
 
@@ -46,7 +48,7 @@ Timer.prototype = {
         this.task = this.createTextElement(".time-current");
         this.total = this.createTextElement(".time-main .time-total");
         
-        this.history = document.querySelector("#main .time-container .time-data .time-history");
+        this.history = this.createHistoryContainer();
     },
     
     attachEvents: function () {
@@ -57,7 +59,8 @@ Timer.prototype = {
         this.pause.getEl().addEventListener("click", function (e) { e.preventDefault(); self.clickPauseButton(); });
         this.history.addEventListener("click", function (e, data) {
             if (e.target.className === "time-p-task") {
-                self.setTaskFromHistory(e.target.textContent);
+                chrome.tabs.create({ url: self.getBaseIssueUrl(e.target.textContent) });
+                //self.setTaskFromHistory(e.target.textContent);
             }
         });  
     },
@@ -126,6 +129,10 @@ Timer.prototype = {
         };
     },
     
+    createHistoryContainer: function () {
+        return document.querySelector("#main .time-container .time-data .time-history");
+    },
+    
     hideAllButtons: function () {
         this.start.hide();
         this.stop.hide();
@@ -163,6 +170,10 @@ Timer.prototype = {
                 callback(null);
             }
         });
+    },
+    
+    getBaseIssueUrl: function (issue) {
+        return this.config.apiHost + "issues/" + (issue ? issue.replace(/[^\d]/,'') : "");  
     },
     
     getPageTask: function () {
@@ -237,9 +248,24 @@ Timer.prototype = {
         this.changeButtons(status);  
     },
     
+    updateTotalTimeView: function (total) {
+        total = +total.toFixed(2);// 1.3 + 1.35 = 2.6500000000000004;
+        this.total.setValue(total > 0 ? total : "");
+        if (total > 0) {
+            if (total > 8) {
+                this.total.setColor("green");
+            } else if (total > 6) {
+                this.total.setColor("blue");   
+            } else {
+                this.total.setColor("red");   
+            }
+        }
+    },
+    
     updateTimeHistoryView: function (elems) {
         console.log("history");
-        var el, time, task;
+        var total = 0,
+            el, time, task, taskTime;
         
         this.history.innerHTML = '';
         if (elems && elems.length > 0) {
@@ -251,19 +277,24 @@ Timer.prototype = {
                 task.classList.add("time-p-task");
                 time.classList.add("time-p-time");
 
-                time.textContent = elems[i].hours.toFixed(2);
+                taskTime = elems[i].hours.toFixed(2);
+                time.textContent = taskTime;
                 task.textContent = '#' + elems[i].task;
 
                 el.appendChild(task);
                 el.appendChild(time);
 
                 this.history.appendChild(el);
+                
+                total += +taskTime;
             }
         } else {
             el = document.createElement("p");
             el.textContent = "No history";
             this.history.appendChild(el);
         }
+        
+        this.updateTotalTimeView(total);
     },
     
     render: function () {

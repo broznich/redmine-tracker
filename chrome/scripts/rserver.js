@@ -60,7 +60,8 @@ RServer.prototype = {
         var params = {
             "user_id"   : this.getCurrentUserId(),
             "from"      : year + '-' + month + '-' + day
-            //"from"        : "2015-02-27"
+            //"to"        : "2015-03-06",
+            //"from"      : "2015-03-05"
         };
         
         this.request("GET", "time_entries.json", params, callback);
@@ -121,5 +122,13 @@ RServer.prototype = {
         };
         
         req.send(formData);
+    },
+    
+    _startCompatibilityTimer: function (issue) { //compatibility functions, will be depricated!
+        
+    },
+    
+    _stopCompatibilityTimer: function (issue) { //compatibility functions, will be depricated!
+        //https://rm.innomdc.com/time_trackers/delete?id=9770
     }
 };
